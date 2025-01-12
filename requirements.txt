@@ -1,0 +1,9 @@
+dash
+dash-bootstrap-components
+PyPDF2
+torch
+transformers
+pinecone-client
+python-dotenv
+langchain
+google-generativeai
