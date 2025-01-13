@@ -23,7 +23,7 @@ An AI-powered application that creates a searchable knowledge base from PDF docu
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/pdf-knowledge-chatbot.git
+git clone https://github.com/nooeeellll/RAG.git
 cd pdf-knowledge-chatbot
 ```
 
