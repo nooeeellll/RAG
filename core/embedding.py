@@ -27,17 +27,22 @@ class EmbeddingManager:
     def process_pdfs_and_upload(self, pdf_files, extract_text_func, split_text_func, namespace="ns1"):
         chunks_per_file = {}
         
-        for file_index, pdf_file in enumerate(pdf_files):
+        for pdf_file in pdf_files:
             text = extract_text_func(pdf_file)
             document_chunks = split_text_func(text)
             vectors_to_upsert = []
+            
+            # Get filename without extension for the ID
+            filename = os.path.splitext(pdf_file.name)[0]
+            # Replace spaces and special characters for safe IDs
+            safe_filename = filename.replace(' ', '-').replace('/', '_').replace('\\', '_')
             
             for batch_index in range(0, len(document_chunks), self.batch_size):
                 batch = document_chunks[batch_index:batch_index + self.batch_size]
                 for chunk_index, chunk in enumerate(batch):
                     embedding = self.embed_text(chunk).squeeze().tolist()
                     vector = {
-                        "id": f"pdf_{file_index}_chunk_{batch_index + chunk_index}",
+                        "id": f"{safe_filename}-chunk-{batch_index + chunk_index}",
                         "values": embedding,
                         "metadata": {
                             "chunk": chunk,
@@ -51,4 +56,4 @@ class EmbeddingManager:
             
             chunks_per_file[pdf_file.name] = len(document_chunks)
         
-        return chunks_per_file  # Return dictionary of chunks per file
+        return chunks_per_file
