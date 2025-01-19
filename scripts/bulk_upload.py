@@ -1,88 +1,52 @@
 import os
-import torch
-from pinecone import Pinecone
-import PyPDF2
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from transformers import AutoModel, AutoTokenizer
+import sys
+from pathlib import Path
 from dotenv import load_dotenv
+
+# Add project root to Python path to import core modules
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from core.embedding import EmbeddingManager
+from core.utils import extract_text_from_pdf, split_text
 
 load_dotenv()
 
-# Initialize Pinecone and other components
-pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
-index = pc.Index(os.getenv('PINECONE_INDEX_NAME'))
-model_name = os.getenv('MODEL_NAME')
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModel.from_pretrained(model_name)
-batch_size = 32
-
-# Function to extract text from PDF file with error handling
-def extract_text_from_pdf(pdf_file):
-    try:
-        reader = PyPDF2.PdfReader(pdf_file)
-        return ' '.join(page.extract_text() for page in reader.pages)
-    except PyPDF2.errors.PdfReadError as e:
-        print(f"Error reading PDF file {pdf_file}: {e}")
-        return ""  # Return empty string if PDF can't be read
-    except Exception as e:
-        print(f"Unexpected error with file {pdf_file}: {e}")
-        return ""
-
-# Function to split the text into smaller chunks
-def split_text(text, max_chunk_size=512, chunk_overlap=0):
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=max_chunk_size, 
-        chunk_overlap=chunk_overlap
-    )
-    documents = text_splitter.create_documents([text])
-    return [doc.page_content for doc in documents]
-
-# Function to generate embeddings from text
-def embed_text(text: str):
-    inputs = tokenizer(text, return_tensors='pt', truncation=True, padding=True, max_length=512)
-    with torch.no_grad():
-        outputs = model(**inputs)
-    return outputs.last_hidden_state.mean(dim=1)
-
-# Function to upload vectors to Pinecone
-def upload_to_pinecone(vectors, namespace="ns1"):
-    index.upsert(vectors=vectors, namespace=namespace)
-
-# Function to process PDF and upload to Pinecone
-def process_pdf_and_upload(pdf_file, namespace="ns1"):
-    pdf_name = os.path.basename(pdf_file)  # Get the PDF file name
-    text = extract_text_from_pdf(pdf_file)
-    document_chunks = split_text(text)
-    vectors_to_upsert = []
-    
-    for batch_index in range(0, len(document_chunks), batch_size):
-        batch = document_chunks[batch_index:batch_index + batch_size]
-        for chunk_index, chunk in enumerate(batch):
-            embedding = embed_text(chunk).squeeze().tolist()
-            vector = {
-                "id": f"{pdf_name}-chunk-{batch_index + chunk_index}",
-                "values": embedding,
-                "metadata": {"chunk": chunk}
-            }
-            vectors_to_upsert.append(vector)
-        upload_to_pinecone(vectors=vectors_to_upsert, namespace=namespace)
-        vectors_to_upsert.clear()
-    return len(document_chunks)
-
-# Function to traverse directories and process all PDFs
 def upload_pdfs_in_directory(directory_path, namespace="ns1"):
+    """Process and upload all PDFs in a directory to Pinecone."""
+    embedding_manager = EmbeddingManager()
     total_chunks_uploaded = 0
+    
     # Traverse the directory and subdirectories for PDF files
     for root, dirs, files in os.walk(directory_path):
-        pdf_files = [f for f in files if f.endswith('.pdf')]
-        for pdf_file in pdf_files:
-            pdf_path = os.path.join(root, pdf_file)
-            print(f"Processing {pdf_path}...")
-            chunks_uploaded = process_pdf_and_upload(pdf_path, namespace)
-            total_chunks_uploaded += chunks_uploaded
+        pdf_files = []
+        for file in files:
+            if file.endswith('.pdf'):
+                file_path = Path(os.path.join(root, file))
+                with open(file_path, 'rb') as f:
+                    # Create file-like object with name attribute for metadata
+                    pdf_file = f
+                    pdf_file.name = file
+                    pdf_files.append(pdf_file)
+                    print(f"Processing {file}...")
+        
+        if pdf_files:
+            # Process batch of PDFs
+            chunks_per_file = embedding_manager.process_pdfs_and_upload(
+                pdf_files,
+                extract_text_from_pdf,
+                split_text,
+                namespace
+            )
+            
+            # Sum up total chunks
+            total_chunks_uploaded += sum(chunks_per_file.values())
+            
+            # Print results for each file
+            for filename, chunk_count in chunks_per_file.items():
+                print(f"Processed {filename}: {chunk_count} chunks")
+    
     return total_chunks_uploaded
 
-# Example usage
-directory_path = "/Users/noel/pmc_pdfs/batch"
-uploaded_chunks = upload_pdfs_in_directory(directory_path)
-print(f"Total chunks uploaded: {uploaded_chunks}")
+if __name__ == "__main__":
+    directory_path = "/Users/noel/pmc_pdfs/batch"  # Replace with your directory path
+    uploaded_chunks = upload_pdfs_in_directory(directory_path)
+    print(f"Total chunks uploaded: {uploaded_chunks}")
