@@ -2,6 +2,7 @@ import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
+import io
 
 # Add project root to Python path to import core modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,12 +22,15 @@ def upload_pdfs_in_directory(directory_path, namespace="ns1"):
         for file in files:
             if file.endswith('.pdf'):
                 file_path = Path(os.path.join(root, file))
+                # Read the file content
                 with open(file_path, 'rb') as f:
-                    # Create file-like object with name attribute for metadata
-                    pdf_file = f
-                    pdf_file.name = file
-                    pdf_files.append(pdf_file)
-                    print(f"Processing {file}...")
+                    content = f.read()
+                # Create BytesIO object with the content
+                pdf_file = io.BytesIO(content)
+                # Add name attribute to the BytesIO object
+                setattr(pdf_file, 'name', file)
+                pdf_files.append(pdf_file)
+                print(f"Processing {file}...")
         
         if pdf_files:
             # Process batch of PDFs
