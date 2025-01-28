@@ -133,4 +133,4 @@ def update_chat(n_clicks, message, history):
     return history, ''
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False, dev_tools_ui=False)
