@@ -18,6 +18,7 @@ An AI-powered application that creates a searchable knowledge base from PDF docu
 - Google AI (Gemini) API key
 - PyTorch
 - Required Python packages (see requirements.txt)
+- Storage for scraping : 14.06 GB for  81.31 GB for NLM LitArch
 
 ## Installation
 
@@ -53,16 +54,23 @@ The application will be available at `http://localhost:8050`
 
 ### Utility Scripts
 
-#### Bulk PDF Upload
-Process multiple PDFs from a directory (edit directory in bulk_upload.py before running):
-```bash
-python scripts/bulk_upload.py
-```
 
 #### PubMed PDF Scraper
-Download PDFs from PubMed Central:
+Download PDFs from PubMed Central and tar.gzs NLM LitArch to folder knowledge_base, NLM files will require PDF extraction with script extract_targz.py :
 ```bash
 python scripts/pubmed_scraper.py
+```
+
+#### tar.gz PDF Extractor
+Extracts PDFs from knowledge_base/NLM tar.gz files downloaded with the scraper into folder knowledge_base/NLM_PDFs:
+```bash
+python scripts/extract_targz.py
+```
+
+#### Bulk PDF Upload
+Process multiple PDFs from a directory (knowledge_base):
+```bash
+python scripts/bulk_upload.py
 ```
 
 ## Project Structure
@@ -78,7 +86,9 @@ pdf-knowledge-chatbot/
 │   └── styles.css     # Styling
 ├── scripts/           # Utility scripts
 │   ├── bulk_upload.py  # Bulk PDF processing
+│   ├── extract_targz.py  # Extracts tar.gz
 │   └── pubmed_scraper.py  # PubMed PDF downloader
+├── knowledge_base/        # Folder for PDFs for bulk uploading
 ├── app.py             # Main application
 └── requirements.txt   # Dependencies
 ```

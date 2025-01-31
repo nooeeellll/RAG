@@ -11,6 +11,10 @@ from core.utils import extract_text_from_pdf, split_text
 
 load_dotenv()
 
+# Get the current script's directory and set knowledge_base path
+current_dir = Path(__file__).parent.parent
+directory_path = current_dir / "knowledge_base"
+
 def upload_pdfs_in_directory(directory_path, namespace="ns1"):
     """Process and upload all PDFs in a directory to Pinecone."""
     embedding_manager = EmbeddingManager()
@@ -51,6 +55,5 @@ def upload_pdfs_in_directory(directory_path, namespace="ns1"):
     return total_chunks_uploaded
 
 if __name__ == "__main__":
-    directory_path = "/Users/noel/pmc_pdfs/batch"  # Replace with your directory path
     uploaded_chunks = upload_pdfs_in_directory(directory_path)
     print(f"Total chunks uploaded: {uploaded_chunks}")
