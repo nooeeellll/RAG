@@ -13,7 +13,7 @@ An AI-powered application that creates a searchable knowledge base from PDF docu
 
 ## Prerequisites
 
-- Python 3.8+
+- Python 3.11+
 - Pinecone API key
 - Google AI (Gemini) API key
 - PyTorch
