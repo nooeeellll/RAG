@@ -42,7 +42,7 @@ class Chatbot:
 
     def generate_response(self, message: str) -> str:
         try:
-            scores, chunks = self.search(message, k=5)
+            scores, chunks = self.search(message, k=10)
             relevant_chunks = self.filter_chunks(scores, chunks)
             
             if not relevant_chunks:
